@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <base target="_blank">
+    <script>
+      var url1 ='<?= data ?>';
+      var winRef = window.open(url1);
+      if (winRef) {
+        google.script.host.close()
+      }
+      window.onload = function(){
+        document.getElementById('url').href = url1;
+      };
+    </script>
+  </head>
+  <body>
+    <p>
+      Either allow pop-ups for https://docs.google.com or <a id='url'>click here </a>to continue.
+    </p>
+  </body>
+</html>
