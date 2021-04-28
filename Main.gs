@@ -1,10 +1,14 @@
-// TODO:
-// https://support.google.com/cloud/answer/9110914#verification-requirements
-// https://developers.google.com/workspace/add-ons/how-tos/publish-add-on-overview
-// https://developers.google.com/workspace/marketplace/how-to-publish
-// https://developers.google.com/apps-script/guides/cloud-platform-projects
-// Add more info to jonkimbel.com about oauth stuff, how i'll have access to gist oauth key and can read gists
-// Make the menu more reasonable
+// Scope usage justifications:
+//
+// https://www.googleapis.com/auth/spreadsheets.currentonly:
+// Will be used to read named ranges, formatting, and cell data (from either the current sheet or the sheet named "JSON") in order to import JSON contents into the sheet and export it out again.
+//
+// https://www.googleapis.com/auth/script.external_request
+// Will be used to publish cell data from the sheet to Github Gists. Menu items that trigger this capability are clearly labeled "...to PUBLIC Gist". Also used by the Google-written OAuth2 library to authenticate with Github.
+//
+// https://www.googleapis.com/auth/script.container.ui
+// Will be used to show users copy-able exported JSON, debug info about the current sheet's formatting, URLs to Github Gists published through the add-on. Also used to open links to the Github OAuth page and to the Github settings page (so the Github integration can be easily revoked by the user).
+
 
 // Defining a schema in the sheet:
 //  1. Only cells with font Courier New will be read as data.
@@ -24,27 +28,43 @@ const DATA_TYPE = {
   // doc.
 const OAUTH_AWARENESS_KEY = "isAwareOfOAuthLink";
 
-// Called by Apps Script.
+/**
+ * Called by Apps Script.
+ * 
+ * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
+ */
 function onInstall() {
   onOpen();
 }
 
-// Called by Apps Script.
+/**
+ * Called by Apps Script.
+ * 
+ * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
+ */
 function onOpen() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.addMenu("Sheets to JSON", [
-    {name: "Import", functionName: "fromJson"},
-    {name: "Export", functionName: "toJson"},
-    {name: "Export 'JSON' sheet", functionName: "toJsonNamedSheet"},
-    {name: "Export 'JSON' to PUBLIC Gist", functionName: "toJsonNamedSheetGist"},
-    {name: "Name range", functionName: "name"},
-    {name: "Print range type", functionName: "printRangeType"},
-    {name: "Purge named ranges", functionName: "purgeNamedRanges"},
+    {name: "Import (current sheet)", functionName: "fromJson"},
+    {name: "Export (current sheet)", functionName: "toJson"},
+    {name: "Export to PUBLIC Gist (current sheet)", functionName: "toJsonGist"},
+    {name: "Export ('JSON' sheet)", functionName: "toJsonNamedSheet"},
+    {name: "Export to PUBLIC Gist ('JSON' sheet)", functionName: "toJsonNamedSheetGist"},
     {name: "Revoke Github access", functionName: "logout"},
-    {name: "[DEBUG] Export", functionName: "toJsonDebug"},
-    {name: "[DEBUG] Highlight data fields", functionName: "highlight"},
+    {name: "[DEBUG] Print range type", functionName: "printRangeType"},
+    {name: "[DEBUG] Name selected range", functionName: "name"},
+    {name: "[DEBUG] Print range tree (current sheet)", functionName: "toJsonDebug"},
+    {name: "[DEBUG] Purge named ranges", functionName: "purgeNamedRanges"},
   ]);
 }
+
+function toJsonGist() { toJson(false, SpreadsheetApp.getActiveSpreadsheet().getActiveSheet(), true); }
+
+function toJsonNamedSheet() { toJson(false, SpreadsheetApp.getActiveSpreadsheet().getSheetByName("JSON")); }
+
+function toJsonNamedSheetGist() { toJson(false, SpreadsheetApp.getActiveSpreadsheet().getSheetByName("JSON"), true); }
+
+function toJsonDebug() { toJson(true); }
 
 /**
  * Called by OAuth2 library, this function name is specified by GithubGistClient.
@@ -90,19 +110,18 @@ function printRangeType() {
 /**
  * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
  */
-function fromJson() {
+function fromJson(sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet()) {
   var ui = SpreadsheetApp.getUi();
   var response = ui.alert('Confirmation', 'Are you sure you want to overwrite the active sheet?', ui.ButtonSet.YES_NO);
   if (response != ui.Button.YES) {
     return;
   }
 
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var range = sheet.getRange(1,1);
   assert(range.getValue().toString().length > 0, "Please enter your JSON in cell A1 of this sheet.");
   var object = JSON.parse(range.getValue());
   range.setValue("")
-  writeObjectToSheet(object);
+  writeObjectToSheet(sheet, object);
 }
 
 /**
@@ -137,25 +156,19 @@ function nameRange(range, name) {
   });
 
   name = name.length == 0 ? "_" : name;
-  if (name.match(/\d+/)) {
+  if (name.match(/^(\d|true|false)/)) {
     name = "REKT" + name;
   }
   while (dupeSet.has(name)) {
     name += "_";
   }
-  console.log("trying to name a range '" + name + "'");
   ss.setNamedRange(name, range);
-  console.log("success!");
 }
 
 /**
  * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
  */
-function writeObjectToSheet(object, loc = {"col": 1, "row": 1, "maxCol": 1}, name = null) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-
-  console.log("click");
-  
+function writeObjectToSheet(sheet, object, loc = {"col": 1, "row": 1, "maxCol": 1}, name = null) {
   if (object == null
       || typeof object == 'number'
       || typeof object == 'string'
@@ -182,10 +195,10 @@ function writeObjectToSheet(object, loc = {"col": 1, "row": 1, "maxCol": 1}, nam
 
   if (Array.isArray(object)) {
     for (var i = 0; i < object.length; i++) {
-      loc = writeObjectToSheet(object[i], loc);
+      loc = writeObjectToSheet(sheet, object[i], loc);
     }
     // Write one null object to the sheet to ensure the one-length arrays are read by the exporter as an array.
-    loc = writeObjectToSheet(null, loc);
+    loc = writeObjectToSheet(sheet, null, loc);
   } else { // Must be an object
     var keys = Object.getOwnPropertyNames(object);
     for (var i = 0; i < keys.length; i++) {
@@ -195,7 +208,7 @@ function writeObjectToSheet(object, loc = {"col": 1, "row": 1, "maxCol": 1}, nam
       loc.col++;
       loc.maxCol = loc.col > loc.maxCol ? loc.col : loc.maxCol;
       
-      loc = writeObjectToSheet(object[keys[i]], loc, keys[i]);
+      loc = writeObjectToSheet(sheet, object[keys[i]], loc, keys[i]);
       loc.col--;
     }
   }
@@ -208,55 +221,17 @@ function writeObjectToSheet(object, loc = {"col": 1, "row": 1, "maxCol": 1}, nam
 }
 
 /**
- * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
- */
-function highlight() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var namedRanges = sheet.getNamedRanges();
-
-  for (var i = 0; i < namedRanges.length; i++) {
-    var rect = rangeToRect(namedRanges[i].getRange());
-    for (var col = rect.left; col <= rect.right; col++) {
-      for (var row = rect.top; row <= rect.bottom; row++) {
-        var range = sheet.getRange(row,col);
-        if (range.getFontFamily() == DATA_FONT_FAMILY) {
-          if (range.getBackground() != DATA_BACKGROUND) {
-            range.setBackground(DATA_BACKGROUND);
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
- */
-function toJsonDebug() {
-  toJson(true);
-}
-
-/**
- * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
- */
-function toJsonNamedSheet() {
-  toJson(false, SpreadsheetApp.getActiveSpreadsheet().getSheetByName("JSON"));
-}
-
-/**
- * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
- */
-function toJsonNamedSheetGist() {
-  toJson(false, SpreadsheetApp.getActiveSpreadsheet().getSheetByName("JSON"), true);
-}
-
-/**
  * Requires
  * https://www.googleapis.com/auth/spreadsheets.currentonly
  * https://www.googleapis.com/auth/script.external_request
  * https://www.googleapis.com/auth/script.container.ui
  */
 function toJson(debug=false, sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet(), toGist=false) {
+  var ui = SpreadsheetApp.getUi();
+  if (sheet == null) {
+    ui.alert('Error', 'No such sheet.', ui.ButtonSet.OK) ;
+    return;
+  }
   var client;
   if (toGist) {
     client = new GithubGistClient();
@@ -264,11 +239,8 @@ function toJson(debug=false, sheet = SpreadsheetApp.getActiveSpreadsheet().getAc
       openUrl(client.getAuthorizationUrl());
       return;
     } else if (!client.tokenHasBeenUsedInThisSheet()) {
-      var ui = SpreadsheetApp.getUi();
-      var response = ui.alert('Confirmation', 'Would you like to publish using the Github account you\'ve linked with the Sheets to JSON addon?', ui.ButtonSet.YES_NO);
+      var response = ui.alert('Confirmation', 'Would you like to publish this data PUBLICLY using the Github account you\'ve linked with the Sheets to JSON addon?\n\nPublic Github Gists can be found and viewed by ANYONE.', ui.ButtonSet.YES_NO);
       if (response != ui.Button.YES) {
-        logout();
-        toJson(debug, sheet, toGist);
         return;
       }
       client.logTokenUseInThisSheet();
@@ -302,13 +274,18 @@ function toJson(debug=false, sheet = SpreadsheetApp.getActiveSpreadsheet().getAc
   } else {
     var jsonString = JSON.stringify(createJsonObjectOf(root, /* forDict = */ true), null, 2);
     if (toGist) {
-      var gistUrl = client.newGist(
-        /* content = */ jsonString,
-        /* filename = */ "sheets.json",
-        /* language = */ "json",
-        /* description = */ "JSON object exported by the 'Sheets to JSON' Google Sheets addon.",
-        /* public = */ true);
-      displayText(gistUrl);
+      try {
+        var gistUrl = client.newGist(
+          /* content = */ jsonString,
+          /* filename = */ "sheets.json",
+          /* language = */ "json",
+          /* description = */ "JSON object exported by the 'Sheets to JSON' Google Sheets addon.",
+          /* public = */ true);
+        displayText(gistUrl);
+      }
+      catch(err) {
+        ui.alert('Gist integration error', 'Unable to post to Github Gist. This may happen if you revoke access in Github\'s settings without clicking "Revoke Github access" in this add-on.\n\nIf this persists, click "Revoke Github access" before trying again.', ui.ButtonSet.OK) ;
+      }
     } else {
       displayText(jsonString);
     }
