@@ -55,6 +55,8 @@ function onOpen() {
     {name: "[DEBUG] Name selected range", functionName: "name"},
     {name: "[DEBUG] Print range tree (current sheet)", functionName: "toJsonDebug"},
     {name: "[DEBUG] Purge named ranges", functionName: "purgeNamedRanges"},
+    {name: "Help", functionName: "openDocumentation"},
+    {name: "Privacy policy", functionName: "openPrivacyPage"},
   ]);
 }
 
@@ -65,6 +67,10 @@ function toJsonNamedSheet() { toJson(false, SpreadsheetApp.getActiveSpreadsheet(
 function toJsonNamedSheetGist() { toJson(false, SpreadsheetApp.getActiveSpreadsheet().getSheetByName("JSON"), true); }
 
 function toJsonDebug() { toJson(true); }
+
+function openDocumentation() { openUrl("https://www.jonkimbel.com/sheets-to-json"); }
+
+function openPrivacyPage() { openUrl("https://www.jonkimbel.com/sheets-to-json#privacy"); }
 
 /**
  * Called by OAuth2 library, this function name is specified by GithubGistClient.
