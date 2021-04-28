@@ -66,7 +66,7 @@ GithubGistClient.prototype.handleCallback = function(request) {
 
 /* 
 Creates a new Github Gist.
-Does not do *anything* to handle errors.
+Does not do *anything* to handle errors. Most common exception will be if the user revokes access in Github.
 
 @param {string} content - Content of new Gist.
 @param {string} filename - Filename for new Gist.
