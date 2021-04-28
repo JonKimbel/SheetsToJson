@@ -1,0 +1,33 @@
+{
+  "addOns": {
+    "common": {
+      "logoUrl": "https://static1.squarespace.com/static/5a3ed6ae8fd4d2655eb03dde/t/608842ffec0c0958f4d97b08/1619542790273/sheets+to+json+logo.png",
+      "name": "Sheets to JSON",
+      "openLinkUrlPrefixes": [
+        "https://github.com/login/oauth/",
+        "https://github.com/settings/applications/"
+      ]
+    },
+    "sheets": {}
+  },
+  "timeZone": "America/Los_Angeles",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "OAuth2",
+        "version": "40",
+        "libraryId": "1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF"
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui",
+    "https://www.googleapis.com/auth/script.external_request"
+  ],
+  "urlFetchWhitelist": [
+    "https://api.github.com/gists"
+  ]
+}
