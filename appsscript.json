@@ -5,7 +5,9 @@
       "name": "Sheets to JSON",
       "openLinkUrlPrefixes": [
         "https://github.com/login/oauth/",
-        "https://github.com/settings/applications/"
+        "https://github.com/settings/applications/",
+        "https://www.jonkimbel.com/",
+        "https://jonkimbel.com/"
       ]
     },
     "sheets": {}
