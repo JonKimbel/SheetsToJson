@@ -162,13 +162,17 @@ function nameRange(range, name) {
   });
 
   name = name.length == 0 ? "_" : name;
-  if (name.match(/^(\d|true|false)/)) {
+  if (name.match(/(\d|true|false)/)) {
     name = "REKT" + name;
   }
   while (dupeSet.has(name)) {
     name += "_";
   }
-  ss.setNamedRange(name, range);
+  try {
+    ss.setNamedRange(name, range);
+  } catch (err) {
+    throw "Cannot name " + range.getA1Notation() + " '" + name + "'";
+  }
 }
 
 /**
