@@ -43,21 +43,20 @@ function onInstall() {
  * Requires https://www.googleapis.com/auth/spreadsheets.currentonly
  */
 function onOpen() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  ss.addMenu("Sheets to JSON", [
-    {name: "Import (current sheet)", functionName: "fromJson"},
-    {name: "Export (current sheet)", functionName: "toJson"},
-    {name: "Export to PUBLIC Gist (current sheet)", functionName: "toJsonGist"},
-    {name: "Export ('JSON' sheet)", functionName: "toJsonNamedSheet"},
-    {name: "Export to PUBLIC Gist ('JSON' sheet)", functionName: "toJsonNamedSheetGist"},
-    {name: "Revoke Github access", functionName: "logout"},
-    {name: "[DEBUG] Print range type", functionName: "printRangeType"},
-    {name: "[DEBUG] Name selected range", functionName: "name"},
-    {name: "[DEBUG] Print range tree (current sheet)", functionName: "toJsonDebug"},
-    {name: "[DEBUG] Purge named ranges", functionName: "purgeNamedRanges"},
-    {name: "Help", functionName: "openDocumentation"},
-    {name: "Privacy policy", functionName: "openPrivacyPage"},
-  ]);
+  SpreadsheetApp.getUi().createAddonMenu()
+    .addItem("Import (current sheet)", "fromJson")
+    .addItem("Export (current sheet)", "toJson")
+    .addItem("Export to PUBLIC Gist (current sheet)", "toJsonGist")
+    .addItem("Export ('JSON' sheet)", "toJsonNamedSheet")
+    .addItem("Export to PUBLIC Gist ('JSON' sheet)", "toJsonNamedSheetGist")
+    .addItem("Revoke Github access", "logout")
+    .addItem("[DEBUG] Print range type", "printRangeType")
+    .addItem("[DEBUG] Name selected range", "name")
+    .addItem("[DEBUG] Print range tree (current sheet)", "toJsonDebug")
+    .addItem("[DEBUG] Purge named ranges", "purgeNamedRanges")
+    .addItem("Help", "openDocumentation")
+    .addItem("Privacy policy", "openPrivacyPage")
+    .addToUi();
 }
 
 function toJsonGist() { toJson(false, SpreadsheetApp.getActiveSpreadsheet().getActiveSheet(), true); }
