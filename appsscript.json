@@ -30,6 +30,7 @@
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "urlFetchWhitelist": [
-    "https://api.github.com/gists"
+    "https://api.github.com/gists",
+    "https://github.com/login/oauth/"
   ]
 }
